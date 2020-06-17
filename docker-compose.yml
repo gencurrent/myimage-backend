@@ -1,0 +1,30 @@
+version: "3.8"
+services: 
+    ab-cropper:
+        build:
+            context: "."
+        environment: 
+            DB_NAME: "ab-cropper"
+            DB_HOST: "ab-cropper-db"
+            DB_PORT: "5432"
+            DB_USER: "ab-cropper"
+            # DB_PASSWORD: "24rtlqTNKKyRkUv1BcF8TIqiYkxF4Yrya3dYpkeg"
+
+    ad-cropper-db:
+        image: "postgres:13"
+        environment: 
+            POSTGRES_DB: "ab-cropper"
+            POSTGRES_USER: "ab-cropper"
+            POSTGRES_DB: "ab-cropper"
+    
+    ad-cropper-redis:
+        image: "redis:6"
+        ports:
+            - "6379:6379"
+        
+
+
+    # ad-cropper-nginx:
+    #     image: "nginx:latest"
+    #     environment:
+            
