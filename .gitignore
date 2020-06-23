@@ -88,5 +88,8 @@ local_settings.py
 # VS Code
 .vscode
 
+# Public files
+/public/
+
 .env
 db.sqlite3

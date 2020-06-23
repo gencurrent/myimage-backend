@@ -9,7 +9,8 @@ from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from PIL import Image
+from PIL import Image, ImageOps, ExifTags
+from pathlib import Path
 
 from .serializers import CropImageSerializer, NewCropperSerialier
 
@@ -35,7 +36,6 @@ class CropDataApiView(APIView):
         
         ss = CropImageSerializer(data=data, many=True)
         
-        
         client_uuid = request.COOKIES.get('X-Client-UUID')
         if client_uuid is None:
             response = Response('X-Client-UUID is required', 400)
@@ -43,13 +43,13 @@ class CropDataApiView(APIView):
         if not ss.is_valid():
             return Response(ss.errors, 400)
         
-        # pdb.set_trace()
         validated_data = ss.data
         for crop_data in validated_data:
             if crop_data.get('uuid') is None:
                 crop_data['uuid'] = str(uuid.uuid4())
         save_to = dict({'cropData': list(validated_data)})
-        cache.set(client_uuid, save_to)
+        # Cache for 30 seconds
+        cache.set(client_uuid, save_to, 60 * 30)
         response = Response(ss.data, status=200)
         return response
 
@@ -72,6 +72,19 @@ class CropImageApiView(APIView):
         image_data = image_file.read()
         pil_image = Image.open(io.BytesIO(image_data))
 
+        # Image rotation fixing
+        if pil_image.format in ('JPEG','JPG'):
+            for orientation in ExifTags.TAGS.keys():
+                if ExifTags.TAGS[orientation]=='Orientation':
+                    break
+            exif=dict(pil_image._getexif().items())
+            if exif[orientation] == 3:
+                pil_image=pil_image.rotate(180, expand=True)
+            elif exif[orientation] == 6:
+                pil_image=pil_image.rotate(270, expand=True)
+            elif exif[orientation] == 8:
+                pil_image=pil_image.rotate(90, expand=True)
+
         crop_data = cache.get(client_uuid)
         if crop_data is None:
             return Response(data={'error': 'The cropper data is not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -86,7 +99,11 @@ class CropImageApiView(APIView):
             )
             cropped = pil_image.crop(crop_data)
             output_filename = '.'.join((str(uuid.uuid4()), image_extension))
-            output_path = os.path.join(settings.PUBLIC_DIRECTORY, 'cropped', output_filename)
+            pdb.set_trace()
+            cropped_path = os.path.join(settings.PUBLIC_DIRECTORY, 'cropped')
+            Path(cropped_path).mkdir(parents=True, exist_ok=True)
+            
+            output_path = os.path.join(cropped_path, output_filename)
             cropped.save(output_path)
             
             crop_uuid = str(cropper.get('uuid'))

@@ -1,30 +1,37 @@
 version: "3.8"
 services: 
-    ab-cropper:
+
+    myimage:
         build:
-            context: "."
-        environment: 
-            DB_NAME: "ab-cropper"
-            DB_HOST: "ab-cropper-db"
-            DB_PORT: "5432"
-            DB_USER: "ab-cropper"
-            # DB_PASSWORD: "24rtlqTNKKyRkUv1BcF8TIqiYkxF4Yrya3dYpkeg"
-
-    ad-cropper-db:
-        image: "postgres:13"
-        environment: 
-            POSTGRES_DB: "ab-cropper"
-            POSTGRES_USER: "ab-cropper"
-            POSTGRES_DB: "ab-cropper"
-    
-    ad-cropper-redis:
-        image: "redis:6"
+            context: ./
+        env_file:
+            - ./.env
         ports:
-            - "6379:6379"
+            - 8000:8000
+        depends_on:
+            - db
+            - redis
+
+    db:
+        image: postgres:13
+        env_file:
+            - ./.env
+    
+    redis:
+        image: "redis:6"
+        env_file:
+            - ./.env
+        ports:
+            - 6379:6379
         
+    nginx:
+        image: nginx:1.19
+        volumes:
+            - ./nginx/nginx-myimage.conf:/etc/nginx/conf.d/default.conf
+        env_file:
+            - ./.env
+        ports:
+            - 80:80
+        depends_on:
+            - myimage
 
-
-    # ad-cropper-nginx:
-    #     image: "nginx:latest"
-    #     environment:
-            
