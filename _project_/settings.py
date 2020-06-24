@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'o!65z1tvw*fc7=y3rgabto^%tzg=wt+4o(yk%h%-j*fgnnbv#a'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', False) == 'true'
 
 ALLOWED_HOSTS = []
 
@@ -80,10 +80,10 @@ WSGI_APPLICATION = '_project_.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'ab-cropper'),
+        'NAME': os.getenv('DB_NAME', 'myimage'),
         'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DB_PORT', '5411'),
-        'USER': os.getenv('DB_USER', 'ab-cropper'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+        'USER': os.getenv('DB_USER', 'myimage'),
         'PASSWORD': os.getenv('DB_PASSWORD', '24rtlqTNKKyRkUv1BcF8TIqiYkxF4Yrya3dYpkeg'),
     }
 }
@@ -91,11 +91,11 @@ DATABASES = {
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'LOCATION': f'redis://{os.getenv("REDIS_HOST", "127.0.0.1")}:{os.getenv("REDIS_PORT", 6379)}/1',
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient'
         },
-        'KEY_PREFIX': 'ab-cropper'
+        'KEY_PREFIX': 'myimage'
     }
 }
 
@@ -139,18 +139,27 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
         },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.getenv('LOG_DIR', './log.txt')
+        }
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'DEBUG',
     },
 }
 
+# File management
+PUBLIC_DIR = os.getenv('PUBLIC_DIR', 'public')
+STATIC_ROOT = '/shared/nginx/static/'
 STATIC_URL = '/static/'
+MEDIA_ROOT = '/shared/nginx/media/'
+MEDIA_URL = '/media/'
 
 
 # CORS Settings
 CORS_ORIGIN_ALLOW_ALL = DEBUG
 
 
-PUBLIC_DIRECTORY = os.getenv('PUBLIC_DIRECTORY', 'public')

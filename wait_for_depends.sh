@@ -14,8 +14,40 @@ while ! nc -z $REDIS_HOST $REDIS_PORT; do
 done
 echo "Redis is launched"
 
+
+USE_GUNICORN=true
+
+while [ "$1" != "" ]; do
+    PARAM=`echo $1 | awk -F= '{print $1}'`
+    VALUE=`echo $1 | awk -F= '{print $2}'`
+    case $PARAM in
+        -d | --debug)
+            USE_GUNICORN=false
+            ;;
+        --environment)
+            ENVIRONMENT=$VALUE
+            ;;
+        --db-path)
+            DB_PATH=$VALUE
+            ;;
+        *)
+            echo "ERROR: unknown parameter \"$PARAM\""
+            usage
+            exit 1
+            ;;
+    esac
+    shift
+done
+
 echo "Running migration"
 ./manage.py migrate --noinput
 
-echo "Running MyImage"
-./manage.py runserver 0.0.0.0:8000
+
+echo "Starting MyImage"
+if [ $USE_GUNICORN = true ]; then
+    gunicorn 
+    echo "Using gunicorn"
+else
+    echo "Not using gunicorn"
+    ./manage.py runserver 0.0.0.0:8000
+fi

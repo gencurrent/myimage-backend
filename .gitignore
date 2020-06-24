@@ -91,5 +91,8 @@ local_settings.py
 # Public files
 /public/
 
-.env
+# logging
+log.txt
+
+# .env
 db.sqlite3
