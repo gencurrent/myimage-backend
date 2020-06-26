@@ -17,5 +17,8 @@ COPY . /src/
 RUN mkdir -p /shared/nginx/static
 RUN mkdir -p /shared/nginx/media
 RUN mkdir -p /shared/nginx/public
+RUN mkdir -p /shared/nginx/html
+
+# RUN ./manage.py collectstatic --no-input
 
 CMD ./wait_for_depends.sh --debug

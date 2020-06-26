@@ -42,6 +42,8 @@ done
 echo "Running migration"
 ./manage.py migrate --noinput
 
+echo "Collecting static data"
+./manage.py collectstatic --no-input
 
 echo "Starting MyImage"
 if [ $USE_GUNICORN = true ]; then

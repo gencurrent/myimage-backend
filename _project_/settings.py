@@ -25,7 +25,11 @@ SECRET_KEY = 'o!65z1tvw*fc7=y3rgabto^%tzg=wt+4o(yk%h%-j*fgnnbv#a'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', False) == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    '192.168.1.63',
+    'myimage.io'
+]
 
 
 # Application definition
@@ -152,11 +156,22 @@ LOGGING = {
 }
 
 # File management
+SHARED_DIR = os.getenv('SHARED_DIR', os.path.join('/', 'shared', 'nginx'))
 PUBLIC_DIR = os.getenv('PUBLIC_DIR', 'public')
-STATIC_ROOT = '/shared/nginx/static/'
+PUBLIC_DIR_SHARED = os.path.join(SHARED_DIR, PUBLIC_DIR)
+STATIC_ROOT = os.getenv('STATIC_ROOT', 'static')
 STATIC_URL = '/static/'
-MEDIA_ROOT = '/shared/nginx/media/'
+MEDIA_ROOT = os.getenv('MEDIA_ROOT', 'media')
 MEDIA_URL = '/media/'
+
+
+CORS_ORIGIN_WHITELIST = (
+    'http://myimage.io',
+    'https://myimage.io',
+    'http://192.168.1.63',
+    'http://127.0.0.1',
+)
+
 
 
 # CORS Settings

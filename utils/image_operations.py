@@ -26,7 +26,8 @@ class ImageOperations:
         pil_image = Image.open(self._image_file)
 
         # Image rotation fixing
-        if pil_image.format in ('JPEG','JPG'):
+        image_format = pil_image.format.lower()
+        if image_format in ('jpeg','jpg'):
             for orientation in ExifTags.TAGS.keys():
                 if ExifTags.TAGS[orientation]=='Orientation':
                     break
@@ -45,17 +46,18 @@ class ImageOperations:
             pil_image.height * (cropper['y'] + cropper['height']) / cropper['image_height'],
         )
         cropped = pil_image.crop(crop_format)
-        output_filename = '.'.join((str(uuid.uuid4()), pil_image.format.lower()))
         
-        cropped_path = os.path.join(settings.PUBLIC_DIR, 'cropped')
+        cropped_path = os.path.join(settings.PUBLIC_DIR_SHARED, 'cropped')
         Path(cropped_path).mkdir(parents=True, exist_ok=True)
         
+        output_filename = '.'.join((str(uuid.uuid4()), image_format))
         output_path = os.path.join(cropped_path, output_filename)
         cropped.save(output_path)
         
-        crop_uuid = str(cropper.get('uuid'))
+        croppped_path_public = Path(settings.PUBLIC_DIR) / 'cropped' / output_filename
+        
         return {
-            'crop_uuid': output_path
+            'url':  str(croppped_path_public)
         }
 
     def crop_image_multiformat(self, crop_data):
@@ -86,15 +88,16 @@ class ImageOperations:
                 pil_image.height * (cropper['y'] + cropper['height']) / cropper['image_height'],
             )
             cropped = pil_image.crop(crop_format)
-            output_filename = '.'.join((str(uuid.uuid4()), pil_image.format.lower()))
             
             cropped_path = os.path.join(settings.PUBLIC_DIR, 'cropped')
             Path(cropped_path).mkdir(parents=True, exist_ok=True)
             
+            output_filename = '.'.join((str(uuid.uuid4()), pil_image.format.lower()))
             output_path = os.path.join(cropped_path, output_filename)
             cropped.save(output_path)
             
+            croppped_path_public = Path(settings.PUBLIC_DIR) / 'cropped' / output_filename
             crop_uuid = str(cropper.get('uuid'))
-            cropping_results[crop_uuid] = output_path
+            cropping_results[crop_uuid] = str(croppped_path_public)
         
         return cropping_results

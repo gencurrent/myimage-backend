@@ -1,26 +1,33 @@
-version: "3.8"
+version: "3.3"
 services: 
     myimage:
         build:
             context: ./
+        image: myimage.io:5000/myimage-backend:1.0
         env_file:
             - ./.env
         ports:
             - 8000:8000
         volumes:
             - ./:/src/
-            - open-serving:/shared/nginx
+            - open-serving:/shared/nginx/
         depends_on:
             - db
             - redis
     frontend:
-        image: myimage-frontend:latest
+        build: 
+            context: ../myimage-frontend
+        image: myimage.io:5000/myimage-frontend:1.0
+        depends_on:
+            - myimage
         volumes:
-            - nginx-html:/shared/nginx/html
+            - open-serving:/shared/nginx/
     db:
         image: postgres:13
         env_file:
             - ./.env
+        volumes:
+            - pgdata:/var/lib/postgresql/data
     redis:
         image: redis:6
         ports:
@@ -28,15 +35,15 @@ services:
     nginx:
         image: nginx:1.19
         volumes:
-            - ./nginx/nginx-myimage.conf:/etc/nginx/conf.d/default.conf
-            - nginx-html:/shared/nginx/html
-            - open-serving:/shared/nginx
+            - ./nginx/nginx-myimage.dev.conf:/etc/nginx/conf.d/default.conf
+            - open-serving:/shared/nginx/
         ports:
             - 80:80
+            - 443:443
         depends_on:
             - myimage
             - frontend
 
 volumes:
     open-serving:
-    nginx-html:
+    pgdata:
