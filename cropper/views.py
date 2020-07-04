@@ -1,4 +1,3 @@
-import pdb
 import io
 import os
 import uuid
@@ -17,8 +16,6 @@ from utils import ImageOperations
 
 logger = logging.getLogger(__name__)
 
-
-# Create your views here.
 
 class CropDataApiView(APIView):
 
@@ -48,28 +45,22 @@ class CropperSetDataSingle(APIView):
         if client_uuid is None:
             response = Response('X-Client-UUID is required', 400)
             return response
-
-        data = request.data
-        logger.info(f'CropperSetData -> data = ')
-        logger.info(data)
-        # TODO: Also update to such format in the frontend
-        # {'3c939073-afdb-4c30-b2ff-dcb8138addd2': {'format': {'slug': 'custom-format', 'name': 'Custom format'}, 'crop': {'x': 87.26666259765625, 'y': 65.36666870117188, 'width': 115, 'height': 88, 'unit': 'px', 'image_height': 404, 'image_width': 404}}}
         
-        plain_crop = data.get('crop')
+        data = request.data
+        plain_data = data.get('crop')
 
-        ss = CropImageSerializer(data=plain_crop)
+        ss = CropImageSerializer(data=plain_data)
         if not ss.is_valid():
             return Response(ss.errors, 400)
         
         validated_data = ss.data
-        logger.info('PlainData = ')
-        logger.info(plain_crop)
 
         original_data = cache.get(client_uuid, {})
-        cached_crop_data = original_data.get('cropData', {})
-        cached_crop_data[crop_uuid] = validated_data
+        cache_data_key = 'cropData'
+        cached_data = original_data.get(cache_data_key, {})
+        cached_data[crop_uuid] = validated_data
 
-        save_data = dict({'cropData': cached_crop_data})
+        save_data = dict({cache_data_key: cached_data})
         cache.set(client_uuid, save_data, 60 * 30)
         response = Response(ss.data, status=200)
         return response
@@ -86,14 +77,12 @@ class CropperSetData(APIView):
         if client_uuid is None:
             response = Response('X-Client-UUID is required', 400)
             return response
-        
 
         data = request.data
-        logger.info(f'CropperSetData -> data = ')
+        logger.info(f'{self.__class__.__name__} -> data = ')
         logger.info(data)
         plain_data = []
-        # TODO: Also update to such format in the frontend
-        # {'3c939073-afdb-4c30-b2ff-dcb8138addd2': {'format': {'slug': 'custom-format', 'name': 'Custom format'}, 'crop': {'x': 87.26666259765625, 'y': 65.36666870117188, 'width': 115, 'height': 88, 'unit': 'px', 'image_height': 404, 'image_width': 404}}}
+        
         for key, value in data.items():
             crop_format = value.get('crop')
             crop_format.update({
@@ -148,7 +137,6 @@ class CropSingleImageApiView(APIView):
         
         if not crop_instance:
             return Response(data='Crop instance not found', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        # pdb.set_trace()
 
         files = request.FILES
         image_file = files.get('image')
@@ -156,6 +144,7 @@ class CropSingleImageApiView(APIView):
             logger.error(f'CropSingleImageApiView -> File not supplied for client UUID: {client_uuid}')
             return Response(None, status=status.HTTP_403_FORBIDDEN)
 
+        file_read = None
         try: 
             image_data = image_file.read()
             file_read = io.BytesIO(image_data)
@@ -164,14 +153,16 @@ class CropSingleImageApiView(APIView):
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         img_ops = ImageOperations(client_uuid, file_read)
-        cropping_results = img_ops.crop_image_single(crop_instance)
+        ops_result = img_ops.crop_image_single(crop_instance)
 
-        return Response(cropping_results, status=status.HTTP_200_OK)
+        return Response(ops_result, status=status.HTTP_200_OK)
 
 
 
 class CropImageApiView(APIView):
-
+    """
+        Class for cropping multiple formats
+    """
     def post(self, request):
         """
         Save all the images and crop them

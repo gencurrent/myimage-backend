@@ -19,5 +19,6 @@ from django.urls import path, include
 urlpatterns = [
     path('ab-admin/', admin.site.urls),
     path('api/system', include('system.urls')),
+    path('api/resizer', include('resizer.urls')),
     path('api/cropper', include('cropper.urls')),
 ]

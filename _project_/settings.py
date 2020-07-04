@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'corsheaders',
 
     'system',
+    'resizer',
     'cropper',
 ]
 
@@ -157,8 +158,8 @@ LOGGING = {
 
 # File management
 SHARED_DIR = os.getenv('SHARED_DIR', os.path.join('/', 'shared', 'nginx'))
-PUBLIC_DIR = os.getenv('PUBLIC_DIR', 'public')
-PUBLIC_DIR_SHARED = os.path.join(SHARED_DIR, PUBLIC_DIR)
+PUBLIC_DIR = os.getenv('PUBLIC_DIR', 'public')  # What a client sees
+PUBLIC_DIR_SHARED = os.path.join(SHARED_DIR, PUBLIC_DIR)    # Real path location in the filesystem
 STATIC_ROOT = os.getenv('STATIC_ROOT', 'static')
 STATIC_URL = '/static/'
 MEDIA_ROOT = os.getenv('MEDIA_ROOT', 'media')

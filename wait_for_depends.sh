@@ -46,9 +46,10 @@ echo "Collecting static data"
 ./manage.py collectstatic --no-input
 
 echo "Starting MyImage"
+echo "USE_GUNICORN = $USE_GUNICORN"
 if [ $USE_GUNICORN = true ]; then
-    gunicorn 
     echo "Using gunicorn"
+    gunicorn --env DJANGO_SETTINGS_MODULE=_project_.settings _project_.wsgi --bind 0.0.0.0:8000 --workers=9
 else
     echo "Not using gunicorn"
     ./manage.py runserver 0.0.0.0:8000
