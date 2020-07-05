@@ -21,4 +21,4 @@ RUN mkdir -p /shared/nginx/html
 
 # RUN ./manage.py collectstatic --no-input
 
-CMD ./wait_for_depends.sh
+CMD ./wait_for_depends.sh -d

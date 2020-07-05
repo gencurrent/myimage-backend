@@ -36,7 +36,7 @@ class ImageOperations:
 
         image_path_public = Path(settings.PUBLIC_DIR) / subdir / filename
         return {
-            'saved': image_path,
+            'saved': output_path,
             'public': str(image_path_public)
         }
 
@@ -106,7 +106,7 @@ class ImageOperations:
         # Fixing EXIF
         pil_image = self._fix_exif(pil_image, image_format)
 
-        cropping_results = dict()
+        cropping_results = list()
         for cropper in crop_data: 
             crop_format = (
                 pil_image.width * cropper['x'] / cropper['image_width'],
@@ -119,12 +119,8 @@ class ImageOperations:
             cropped_path = os.path.join(settings.PUBLIC_DIR, 'cropped')
             Path(cropped_path).mkdir(parents=True, exist_ok=True)
             
-            output_filename = '.'.join((str(uuid.uuid4()), pil_image.format.lower()))
-            output_path = os.path.join(cropped_path, output_filename)
-            cropped.save(output_path)
-            
-            croppped_path_public = Path(settings.PUBLIC_DIR) / 'cropped' / output_filename
-            crop_uuid = str(cropper.get('uuid'))
-            cropping_results[crop_uuid] = str(croppped_path_public)
+            output_filename = '.'.join((str(uuid.uuid4()), image_format))
+            save_result = self._save_pil_image(cropped, output_filename, 'cropped')
+            cropping_results.append(save_result)
         
         return cropping_results

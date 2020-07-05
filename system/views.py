@@ -31,13 +31,15 @@ class SystemOpUuid(APIView):
         if client_uuid is None:
             response = Response('X-Client-UUID is required', 400)
             return response
-        if not(operation in ('resize', 'crop', 'crop-multiple')):
-            logger.warning(f'{self.__class__.__name__}: wrong operation supplied: {operation}')
-            return Response({'error': 'Operation not allowed'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Create a new Operation UUID and save it to the cache
         op_uuid = str(uuid.uuid4())
-        cache_key = f'{client_uuid}_{operation}_{op_uuid}'
-        cache.set(cache_key, {}, 60 * 60)
+        if operation in ('resize', 'crop', 'crop-multiformat'):
+            """ Base Operation """
+            cache_key = f'{client_uuid}_{operation}_{op_uuid}'
+            cache.set(cache_key, {}, 60 * 60)
+        else:
+            logger.warning(f'{self.__class__.__name__}: wrong operation supplied: {operation}')
+            return Response({'error': 'Operation not allowed'}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({'uuid': op_uuid}, status=200)
