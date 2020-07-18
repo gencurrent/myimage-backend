@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'system',
     'resizer',
     'cropper',
+    'results',
 ]
 
 MIDDLEWARE = [
@@ -100,6 +101,7 @@ CACHES = {
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient'
         },
+        'TIMEOUT': 12 * 60 * 60,
         'KEY_PREFIX': 'myimage'
     }
 }
@@ -178,4 +180,5 @@ CORS_ORIGIN_WHITELIST = (
 # CORS Settings
 CORS_ORIGIN_ALLOW_ALL = DEBUG
 
-
+# Timeout for operations caching
+CACHE_OPERATION_TIMEOUT = 12 * 60 * 60

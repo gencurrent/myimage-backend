@@ -32,11 +32,22 @@ class CropperSetDataSingle(APIView):
 
         ss = CropImageSerializer(data=plain_data)
         if not ss.is_valid():
-            return Response(ss.errors, 400)
+            return Response(ss.errors, status.HTTP_400_BAD_REQUEST)
         
         validated_data = ss.data
         cache_key = f'{client_uuid}_crop_{op_uuid}'
-        cache.set(cache_key, dict(validated_data), 60 * 30)
+
+        # Get original cached data
+        original_data = cache.get(cache_key, None)
+        if original_data is None:
+            logger.warning(f'{self.__class__.__name__}: the cache operation is not found')
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+
+        data_to_save = {
+            'input': validated_data # Input data for the future operations
+        }
+        cache.set(cache_key, data_to_save, settings.CACHE_OPERATION_TIMEOUT)
         response = Response(ss.data, status=200)
         return response
 
@@ -74,12 +85,12 @@ class CropperSetData(APIView):
                 logger.error(f'{self.__class__.__name__}: operation UUID is None')
                 return Response(500)
             cache_key = f'{client_uuid}_crop_{sub_op_uuid}'
-            cache.set(cache_key, crop_data, 60 * 60)
+            cache.set(cache_key, crop_data, settings.CACHE_OPERATION_TIMEOUT)
             cache_keys_saved.append(cache_key)
         
         # Save the array of keys to the main crop data cache
         cache_key_main = f'{client_uuid}_crop-multiformat_{op_uuid}'
-        cache.set(cache_key_main, cache_keys_saved, 60 * 60)
+        cache.set(cache_key_main, cache_keys_saved, settings.CACHE_OPERATION_TIMEOUT)
 
         return Response(ss.data, status=200)
 
@@ -101,11 +112,16 @@ class CropSingleImageApiView(APIView):
         
         # Getting crop data
         cache_key = f'{client_uuid}_crop_{op_uuid}'
-        cached_data = cache.get(cache_key, {})
-        if not cached_data:
+        operation_data = cache.get(cache_key, {})
+        if not operation_data:
             logger.error(f'CropSingleImageApiView -> Crop cache for client {client_uuid} not found')
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        logger.info(cached_data)
+        
+        # Get the input data
+        input_data = operation_data.get('input')
+        if input_data is None:
+            logger.warning(f'{self.__class__.__name__}: the cache operation input data is not found')
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         files = request.FILES
         image_file = files.get('image')
@@ -120,12 +136,20 @@ class CropSingleImageApiView(APIView):
         except Exception as e:
             logger.error(f'CropImageApiView: error while reading image data: {e}')
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
 
+        # The operation itself
         img_ops = ImageOperations(client_uuid, file_read)
-        ops_result = img_ops.crop_image_single(cached_data)
+        ops_result = img_ops.crop_image_single(input_data)
+
+        # Save the result into the cache
+        operation_data.update({'results': ops_result})
+        cache.set(cache_key, operation_data, settings.CACHE_OPERATION_TIMEOUT)
+        logger.info(f'{self.__class__.__name__} :: operation_data')
+        logger.info(operation_data)
 
         return Response(ops_result, status=status.HTTP_200_OK)
-
 
 
 class CropImageApiView(APIView):
@@ -134,7 +158,7 @@ class CropImageApiView(APIView):
     """
     def post(self, request, op_uuid):
         """
-        Save all the images and crop them
+        Upload an image from client and crop it for every crop-data
         :param op_uuid str: the main operation UUID
         """
         # Handling client UUID
@@ -150,6 +174,7 @@ class CropImageApiView(APIView):
             logger.error(f'{self.__class__.__name__}: Main crop cache for client {client_uuid} not found')
             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+        # Getting crop caches for every single crop operation
         crop_caches = []
         for crop_key in main_crop_cache:
             crop_cache = cache.get(crop_key, None)
@@ -175,4 +200,4 @@ class CropImageApiView(APIView):
         cropping_results = img_ops.crop_image_multiformat(crop_caches)
 
         
-        return Response(cropping_results, status=status.HTTP_200_OK)
+        return Response(list(r.get('public') for r in cropping_results), status=status.HTTP_200_OK)

@@ -21,4 +21,5 @@ urlpatterns = [
     path('api/system', include('system.urls')),
     path('api/resizer', include('resizer.urls')),
     path('api/cropper', include('cropper.urls')),
+    path('api/results', include('results.urls')),
 ]

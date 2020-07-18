@@ -36,14 +36,17 @@ class ResizerSetDataSingle(APIView):
             return Response(ss.errors, status.HTTP_400_BAD_REQUEST)
 
         validated_data = ss.data
-
         cache_key = f'{client_uuid}_resize_{op_uuid}'
+        
+        # Get original cached data
         original_data = cache.get(cache_key, None)
         if original_data is None:
             logger.warning(f'{self.__class__.__name__}: the cache operation is not found')
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        data_to_save = validated_data
+        data_to_save = {
+            'input': validated_data # Input data for the future operations
+        }
         cache.set(cache_key, data_to_save, 1 * 60 * 60)
         response = Response(ss.data, status=200)
         return response
@@ -61,9 +64,16 @@ class ResizeManyImagesApiView(APIView):
             return response
 
         cache_key = f'{client_uuid}_resize_{op_uuid}'
-        original_data = cache.get(cache_key, None)
-        if original_data is None:
+        operation_data = cache.get(cache_key, None)
+        # Get the whole operation data
+        if operation_data is None:
             logger.warning(f'{self.__class__.__name__}: the cache operation is not found')
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # Get the input data
+        input_data = operation_data.get('input')
+        if input_data is None:
+            logger.warning(f'{self.__class__.__name__}: the cache operation input data is not found')
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         files = request.FILES
@@ -81,65 +91,23 @@ class ResizeManyImagesApiView(APIView):
                 logger.error(f'{self.__class__.__name__}: error while reading file: {e}')
                 return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        saving_results = {}
+        # The operation itself
+        ops_result = {}
         for f, _file in files_read.items():
             try: 
                 img_ops = ImageOperations(client_uuid, file_read)
-                op_result = img_ops.resize_image_single(original_data)
-                saving_results[f] = op_result
+                op_result = img_ops.resize_image_single(input_data)
+                ops_result[f] = op_result
             except Exception as e:
                 logger.warning(f'{self.__class__.__name__}: error while reading image: {e}')
                 return Response(status=status.HTTP_400_BAD_REQUEST)
-        logger.info(saving_results)
+        logger.info(ops_result)
 
-        return Response(dict( (k, {'uri': sr['public']}) for k, sr in saving_results.items() ), status=status.HTTP_200_OK)
+        # Save the result into the cache
+        operation_data.update({'results': ops_result})
+        cache.set(cache_key, operation_data, 1 * 60 * 60)
+        logger.info(operation_data)
 
-
-# class ResizeSingleImageApiView(APIView):
-    
-#     def post(self, request, resize_uuid):
-#         """
-#         Reszie and save a single image to return it to the client
-#         """
-
-#         # Handling client UUID
-#         client_uuid = request.COOKIES.get('X-Client-UUID')
-#         if client_uuid is None:
-#             response = Response('X-Client-UUID is required', 400)
-#             return response
-
-#         # Getting crop data
-#         cache_data = cache.get(client_uuid, {})
-#         if not cache_data:
-#             logger.error(f'{self.__class__.__name__} -> Resize cache for client {client_uuid} not found')
-#             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-#         resize_data = cache_data.get('resizeData')
-#         if not resize_data:
-#             logger.error(f'{self.__class__.__name__} -> put -> Resize data for client {client_uuid} not found')
-#             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-#         logger.debug(resize_data)
-#         operation_instance = resize_data.get(resize_uuid)
-        
-#         if not operation_instance:
-#             return Response(data='Resize Instance not found', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#         files = request.FILES
-#         image_file = files.get('image')
-#         if not image_file:
-#             logger.error(f'{self.__class__.__name__} -> File not supplied for client UUID: {client_uuid}')
-#             return Response(None, status=status.HTTP_403_FORBIDDEN)
-
-#         file_read = None
-#         try: 
-#             image_data = image_file.read()
-#             file_read = io.BytesIO(image_data)
-#         except Exception as e:
-#             logger.error(f'{self.__class__.__name__}: error while reading image data: {e}')
-#             return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-#         img_ops = ImageOperations(client_uuid, file_read)
-#         ops_result = img_ops.resize_image_single(operation_instance)
-
-#         return Response(ops_result.get('public'), status=status.HTTP_200_OK)
+        to_return = dict( (k, {'uri': sr['public']}) for k, sr in ops_result.items() )
+        return Response(to_return, status=status.HTTP_200_OK)
 
