@@ -37,7 +37,8 @@ class ImageOperations:
         image_path_public = Path(settings.PUBLIC_DIR) / subdir / filename
         return {
             'saved': output_path,
-            'public': str(image_path_public)
+            'public': str(image_path_public),
+            'filename': filename
         }
 
     def _fix_exif(self, pil_image:Image, image_format:str):

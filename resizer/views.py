@@ -95,7 +95,7 @@ class ResizeManyImagesApiView(APIView):
         ops_result = {}
         for f, _file in files_read.items():
             try: 
-                img_ops = ImageOperations(client_uuid, file_read)
+                img_ops = ImageOperations(client_uuid, _file)
                 op_result = img_ops.resize_image_single(input_data)
                 ops_result[f] = op_result
             except Exception as e:
