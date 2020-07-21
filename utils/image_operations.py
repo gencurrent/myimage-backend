@@ -61,9 +61,9 @@ class ImageOperations:
         pil_image = self._fix_exif(pil_image, image_format)
         
         new_size = (int(resizer.get('width')), int(resizer.get('height')))
-        pil_resized_image = pil_image.resize(new_size, Image.ANTIALIAS)
+        pil_image_operated = pil_image.resize(new_size, Image.ANTIALIAS)
         filename = '.'.join(( str(uuid.uuid4()), image_format ))
-        save_result = self._save_pil_image(pil_resized_image, filename, 'resizer')
+        save_result = self._save_pil_image(pil_image_operated, filename, 'resizer')
         return save_result
 
     def crop_image_single(self, cropper):
@@ -75,27 +75,23 @@ class ImageOperations:
         image_format = pil_image.format.lower()
         # Fixing EXIF
         pil_image = self._fix_exif(pil_image, image_format)
-
+        logger.info(f'Cropper = ')
+        logger.info(cropper)
         crop_format = (
             pil_image.width * cropper['x'] / cropper['image_width'],
             pil_image.height * cropper['y'] / cropper['image_height'],
             pil_image.width * (cropper['x'] + cropper['width']) / cropper['image_width'],
             pil_image.height * (cropper['y'] + cropper['height']) / cropper['image_height'],
         )
-        cropped = pil_image.crop(crop_format)
+        pil_image_operated = pil_image.crop(crop_format)
         
         cropped_path = os.path.join(settings.PUBLIC_DIR_SHARED, 'cropped')
         Path(cropped_path).mkdir(parents=True, exist_ok=True)
-        
-        output_filename = '.'.join((str(uuid.uuid4()), image_format))
-        output_path = os.path.join(cropped_path, output_filename)
-        cropped.save(output_path)
-        
-        croppped_path_public = Path(settings.PUBLIC_DIR) / 'cropped' / output_filename
-        
-        return {
-            'url':  str(croppped_path_public)
-        }
+
+
+        filename = '.'.join(( str(uuid.uuid4()), image_format ))
+        save_result = self._save_pil_image(pil_image_operated, filename, 'cropper')
+        return save_result
 
     def crop_image_multiformat(self, crop_data):
         """

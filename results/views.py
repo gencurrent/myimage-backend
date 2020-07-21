@@ -37,9 +37,11 @@ class ResultView(APIView):
             logger.warning(f'{self.__class__.__name__}: the operation\'s {operation_uuid} results are not found in cache')
             resp = Response(status=status.HTTP_404_NOT_FOUND)
             return resp
+        logger.info(f'{self.__class__.__name__} : ops_results = ')
         logger.info(ops_results)
 
         # Iteration over keys of the operation
+        logger.info(ops_results.items())
         for k, v in ops_results.items():
             del v['saved']
         logger.info(ops_results)

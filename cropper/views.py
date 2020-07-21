@@ -124,24 +124,33 @@ class CropSingleImageApiView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         files = request.FILES
-        image_file = files.get('image')
-        if not image_file:
-            logger.error(f'CropSingleImageApiView -> File not supplied for client UUID: {client_uuid}')
-            return Response(None, status=status.HTTP_403_FORBIDDEN)
+        if not files:
+            logger.warning('{self.__class__.__name__}: no files were uploaded')
+            return Response('No files uploaded', status=status.HTTP_400_BAD_REQUEST)
 
-        file_read = None
-        try: 
-            image_data = image_file.read()
-            file_read = io.BytesIO(image_data)
-        except Exception as e:
-            logger.error(f'CropImageApiView: error while reading image data: {e}')
-            return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        files_read = {}
+        for f, _file in files.items():
+            try: 
+                image_data = _file.read()
+                file_read = io.BytesIO(image_data)
+                files_read[f] = file_read
+            except Exception as e:
+                logger.error(f'{self.__class__.__name__}: error while reading file: {e}')
+                return Response(None, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+        ops_result = {}
+        for f, _file in files_read.items():
+            try: 
+                image_data = _file.read()
+                file_read = io.BytesIO(image_data)
+                img_ops = ImageOperations(client_uuid, file_read)
+                ops_result[f] = img_ops.crop_image_single(input_data)
+            except Exception as e: 
+                logger.error(f'{self.__class__.__name__} : Error while cropping image')
         
-
         # The operation itself
-        img_ops = ImageOperations(client_uuid, file_read)
-        ops_result = img_ops.crop_image_single(input_data)
+        logger.info(f'Operations result: ')
+        logger.info(ops_result)
 
         # Save the result into the cache
         operation_data.update({'results': ops_result})
@@ -149,7 +158,7 @@ class CropSingleImageApiView(APIView):
         logger.info(f'{self.__class__.__name__} :: operation_data')
         logger.info(operation_data)
 
-        return Response(ops_result, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)
 
 
 class CropImageApiView(APIView):
