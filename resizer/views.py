@@ -101,12 +101,10 @@ class ResizeManyImagesApiView(APIView):
             except Exception as e:
                 logger.warning(f'{self.__class__.__name__}: error while reading image: {e}')
                 return Response(status=status.HTTP_400_BAD_REQUEST)
-        logger.info(ops_result)
 
         # Save the result into the cache
         operation_data.update({'results': ops_result})
         cache.set(cache_key, operation_data, 1 * 60 * 60)
-        logger.info(operation_data)
 
         to_return = dict( (k, {'uri': sr['public']}) for k, sr in ops_result.items() )
         return Response(to_return, status=status.HTTP_200_OK)
